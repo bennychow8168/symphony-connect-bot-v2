@@ -1,0 +1,18 @@
+<messageML>
+    <h2>Add Permissions Results for {{advisorEmail}} on {{externalNetwork}}</h2>
+    <br/>
+        <table style='border-collapse:collapse;border-spacing:0px;white-space:nowrap'>
+              <tr class="tempo-text-color--black">
+                <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:200px'><b>Permission</b></td>
+                <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:300px'><b>Status</b></td>
+                <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:200px'><b>Remarks</b></td>
+              </tr>
+              {% for permName, output in permission_results.items() %}
+              <tr>
+                <td>{{permName}}</td>
+                <td>{{output['status']}}</td>
+                <td>{{output['result']}}</td>
+              </tr>
+              {% endfor %}
+        </table>
+</messageML>

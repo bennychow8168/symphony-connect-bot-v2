@@ -1,0 +1,29 @@
+<messageML>
+    <h2>Edit User Permissions for {{user_profile['display_name']}} on {{externalNetwork}}</h2>
+    <br/>
+            <form id="permissions-edit-user-form">
+                {% if user_permissions|length > 0 %}
+                <h5>Current Granted Permissions</h5>
+                <p>Permission removal currently not supported</p>
+                <ul>
+                    {% for p1 in user_permissions %}
+                    <li>{{p1}}</li>
+                    {% endfor %}
+                </ul>
+                <br/>
+                {% endif %}
+                <h5>Select permissions to be added</h5>
+                <br/>
+                {% for p2 in connect_permissions %}
+                {% if p2 not in user_permissions %}
+                <checkbox name="new_permissions" value="{{p2}}">{{p2}}</checkbox>
+                {% endif %}
+                {% endfor %}
+                <div style="display:none">
+                    <text-field name="externalNetwork">{{externalNetwork}}</text-field>
+                    <text-field name="advisorEmail">{{user_profile['email_address']}}</text-field>
+                </div>
+                <br/>
+                <button name="submit" type="action">Submit</button>
+            </form>
+</messageML>

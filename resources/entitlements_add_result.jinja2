@@ -1,0 +1,25 @@
+<messageML>
+    <h2>Add User Entitlements Results</h2>
+    <br/>
+        <card accent="tempo-bg-color--blue">
+            <header><h5>Expand to see results</h5></header>
+            <body>
+                <table style='border-collapse:collapse;border-spacing:0px;white-space:nowrap'>
+                      <tr class="tempo-text-color--black">
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:200px'><b>Name</b></td>
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:300px'><b>Email</b></td>
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:200px'><b>Network</b></td>
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:500px'><b>Status</b></td>
+                      </tr>
+                      {% for symphonyId, user in user_dict.items() %}
+                      <tr>
+                        <td>{{user['display_name']}}</td>
+                        <td>{{user['email_address']}}</td>
+                        <td>{{externalNetwork}}</td>
+                        <td>{{result_dict[symphonyId]}}</td>
+                      </tr>
+                      {% endfor %}
+                </table>
+            </body>
+        </card>
+</messageML>

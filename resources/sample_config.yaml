@@ -1,0 +1,22 @@
+host: pod.symphony.com
+
+ssl:
+  trustStore:
+    path: resources/all_symphony_certs.pem
+
+bot:
+  username: bot_username
+  privateKey:
+    path: rsa/privatekey.pem
+
+context:
+  WHATSAPP:
+    apiURL: https://connect.uat.symphony.com/admin
+    publicKeyId: publicKeyId-X
+    privateKey:
+      path: rsa/connect-privateKey.pem
+  WECHAT:
+    apiURL: https://wcgw-uat.symphony.com/wechatgateway
+    publicKeyId: publicKeyId-Y
+    privateKey:
+      path: rsa/connect-privateKey.pem

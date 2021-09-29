@@ -1,0 +1,41 @@
+<messageML>
+    <h2>View / Edit User Permissions for {{externalNetwork}}</h2>
+    <br/>
+        <card accent="tempo-bg-color--blue">
+            <header><h5>Select User to edit</h5></header>
+            <body>
+            <form id="permissions-view-edit-form">
+                <table style='border-collapse:collapse;border-spacing:0px;white-space:nowrap'>
+                      <tr class="tempo-text-color--black">
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:100px'><b>Name</b></td>
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:100px'><b>Email</b></td>
+                        {% for pname in connect_permissions %}
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:50px'><b>{{pname}}</b></td>
+                        {% endfor %}
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:100px'><b>Network</b></td>
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:100px'><b>Action</b></td>
+                      </tr>
+                      {% for user in connect_entitled_users %}
+                      <tr>
+                        <td>{{user['displayName']}}</td>
+                        <td>{{symphony_user_profiles[user['symphonyId']]['email_address']}}</td>
+                        {% for pname in connect_permissions %}
+                        {% if pname in entitled_users_permissions[user['symphonyId']] %}
+                        <td>&#9989;</td>
+                        {% else %}
+                        <td>&#10060;</td>
+                        {% endif %}
+                        {% endfor %}
+                        <td>{{user['externalNetwork']}}</td>
+                        <td><button name="edit_{{user['symphonyId']}}" type="action">Edit</button></td>
+                      </tr>
+                      {% endfor %}
+                </table>
+                <br/>
+                <div style="display:none">
+                    <text-field name="externalNetwork">{{externalNetwork}}</text-field>
+                </div>
+            </form>
+            </body>
+        </card>
+</messageML>

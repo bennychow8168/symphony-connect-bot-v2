@@ -1,0 +1,31 @@
+<messageML>
+    <h2>View / Delete User Entitlements for {{externalNetwork}}</h2>
+    <br/>
+        <card accent="tempo-bg-color--blue">
+            <header><h5>Select Users to be removed</h5></header>
+            <body>
+            <form id="entitlements-view-delete-form">
+                <table style='border-collapse:collapse;border-spacing:0px;white-space:nowrap'>
+                      <tr class="tempo-text-color--black">
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:200px'><b>Name</b></td>
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:300px'><b>Email</b></td>
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:200px'><b>Network</b></td>
+                        <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:200px'><b>Action</b></td>
+                      </tr>
+                      {% for user in userList %}
+                      <tr>
+                        <td>{{user['displayName']}}</td>
+                        <td>{{user['emailAddress']}}</td>
+                        <td>{{user['externalNetwork']}}</td>
+                        <td><button name="del_{{user['symphonyId']}}" type="action">Delete</button></td>
+                      </tr>
+                      {% endfor %}
+                </table>
+                <br/>
+                <div style="display:none">
+                    <text-field name="externalNetwork">{{externalNetwork}}</text-field>
+                </div>
+            </form>
+            </body>
+        </card>
+</messageML>

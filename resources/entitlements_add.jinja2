@@ -1,0 +1,15 @@
+<messageML>
+    <h2>Add User Entitlements</h2>
+    <br/>
+    <form id="entitlements-add-form">
+        <h5>Enter list of users to be entitled for {{externalNetwork}}</h5>
+        <br/>
+        <person-selector name="userlist" placeholder="Select Users to add" required="true" />
+        <br/>
+        <div style="display:none">
+        <text-field name="externalNetwork">{{externalNetwork}}</text-field>
+        </div>
+        <button name="submit" type="action">Submit</button>
+        <button type="reset">Reset</button>
+    </form>
+</messageML>
