@@ -39,6 +39,13 @@ class ConnectApiClient():
         return status, result
 
 
+    def delete_permission(self, externalNetwork, advisorEmail, permissionName):
+        url = f'/api/v1/customer/advisors/advisorEmailAddress/{advisorEmail}/externalNetwork/{externalNetwork}/permissions/{permissionName}'
+        status, result = self.execute_rest_call(externalNetwork, "DELETE", url)
+
+        return status, result
+
+
     def list_entitlements(self, externalNetwork, page_cursor=''):
         base_url = f'/api/v1/customer/entitlements/externalNetwork/{externalNetwork}/advisors'
         next_url = base_url + page_cursor

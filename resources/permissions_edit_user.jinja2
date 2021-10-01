@@ -3,13 +3,10 @@
     <br/>
             <form id="permissions-edit-user-form">
                 {% if user_permissions|length > 0 %}
-                <h5>Current Granted Permissions</h5>
-                <p>Permission removal currently not supported</p>
-                <ul>
-                    {% for p1 in user_permissions %}
-                    <li>{{p1}}</li>
-                    {% endfor %}
-                </ul>
+                <h5>Select permissions to be removed</h5>
+                {% for p1 in user_permissions %}
+                <checkbox name="del_permissions" value="{{p1}}">{{p1}}</checkbox>
+                {% endfor %}
                 <br/>
                 {% endif %}
                 <h5>Select permissions to be added</h5>

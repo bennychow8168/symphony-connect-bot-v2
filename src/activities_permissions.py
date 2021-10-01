@@ -179,22 +179,43 @@ class PermissionsEditUserFormReplyActivity(FormReplyActivity):
 
     def matches(self, context: FormReplyContext) -> bool:
         return context.form_id == "permissions-edit-user-form" \
-            and "new_permissions" in context.form_values
+            and ("new_permissions" in context.form_values or "del_permissions" in context.form_values)
 
     async def on_activity(self, context: FormReplyContext):
         self.template = Template(open('resources/permissions_edit_user_result.jinja2').read(), autoescape=True)
         externalNetwork = context.form_values["externalNetwork"]
         advisorEmail = context.form_values["advisorEmail"]
-        permission_list = context.form_values["new_permissions"]
+        del_permission_list = []
+        add_permission_list = []
         permission_results = dict()
 
-        for p in permission_list:
-            status, result = self.connect_client.add_permission(externalNetwork, advisorEmail, p)
+        if "del_permissions" in context.form_values:
+            if isinstance(context.form_values["del_permissions"], list):
+                del_permission_list = context.form_values["del_permissions"]
+            else:
+                del_permission_list.append(context.form_values["del_permissions"])
+
+        if "new_permissions" in context.form_values:
+            if isinstance(context.form_values["new_permissions"], list):
+                add_permission_list = context.form_values["new_permissions"]
+            else:
+                add_permission_list.append(context.form_values["new_permissions"])
+
+        for p1 in del_permission_list:
+            status, result = self.connect_client.delete_permission(externalNetwork, advisorEmail, p1)
             output = {
                 "status": status,
                 "result": result
             }
-            permission_results[p] = output
+            permission_results[p1] = output
+
+        for p2 in add_permission_list:
+            status, result = self.connect_client.add_permission(externalNetwork, advisorEmail, p2)
+            output = {
+                "status": status,
+                "result": result
+            }
+            permission_results[p2] = output
 
         message = self.template.render(externalNetwork=context.form_values["externalNetwork"], advisorEmail=advisorEmail, permission_results=permission_results)
         await self._messages.send_message(context.source_event.stream.stream_id, message)
