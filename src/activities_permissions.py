@@ -19,47 +19,45 @@ class PermissionsMainMenuFormReplyActivity(FormReplyActivity):
         self.action = None
 
     def matches(self, context: FormReplyContext) -> bool:
-        return context.form_id == "main-menu-form" \
-            and context.form_values["action"] in ("view_edit_permissions")
+        return context.form_id in ("main-menu-form", "permissions-view-edit-form") \
+            and context.form_values["action"] in ("view_edit_permissions", "next_page", "prev_page")
 
     async def on_activity(self, context: FormReplyContext):
         self.template = Template(open('resources/permissions_view_edit.jinja2').read(), autoescape=True)
         externalNetwork = context.form_values["externalNetwork"]
+        self.action = context.form_values["action"]
+        if self.action == "next_page":
+            page_cursor = context.form_values['next_cursor']
+        elif self.action == "prev_page":
+            page_cursor = context.form_values['prev_cursor']
+        else:
+            page_cursor = ''
         connect_permissions = self.getConnectPermissions(externalNetwork)
-        connect_entitled_users = self.getConnectEntitledUsers(externalNetwork)
-        symphony_user_profiles = dict()
+        connect_entitled_users, next_cursor, prev_cursor = self.getConnectEntitledUsers(externalNetwork, page_cursor)
+        symphony_user_profiles = await self.getSymphonyUserDetails(connect_entitled_users)
         entitled_users_permissions = dict()
 
         # Loop through Entitled Users
         for user in connect_entitled_users:
             symphonyId = user['symphonyId']
-            # Get Symphony User Details
-            try:
-                userDet = await self._users.get_user_detail(symphonyId)
-                symphony_user_profiles[symphonyId] = userDet['user_attributes']
-            except:
-                symphony_user_profiles[symphonyId] = {
-                    'email_address': ''
-                }
-                entitled_users_permissions[symphonyId] = []
-                continue
 
             # Get Connect permissions
             advisorEmail = symphony_user_profiles[symphonyId]['email_address']
             entitled_users_permissions[symphonyId] = self.getAdvisorPermission(externalNetwork, advisorEmail)
 
         message = self.template.render(externalNetwork=context.form_values["externalNetwork"], connect_permissions=connect_permissions,
-                                      connect_entitled_users=connect_entitled_users, symphony_user_profiles=symphony_user_profiles, entitled_users_permissions=entitled_users_permissions)
+                                      connect_entitled_users=connect_entitled_users, symphony_user_profiles=symphony_user_profiles, entitled_users_permissions=entitled_users_permissions,
+                                       next_cursor=next_cursor, prev_cursor=prev_cursor)
 
         await self._messages.send_message(context.source_event.stream.stream_id, message)
 
-    def getConnectEntitledUsers(self, externalNetwork):
-        status, result = self.connect_client.list_entitlements(externalNetwork)
+    def getConnectEntitledUsers(self, externalNetwork, page_cursor):
+        status, result, next_cursor, prev_cursor = self.connect_client.list_entitlements(externalNetwork, page_cursor)
         if status == 'OK':
             if 'entitlements' in result and len(result['entitlements']) > 0:
-                return result['entitlements']
+                return result['entitlements'], next_cursor, prev_cursor
 
-        return []
+        return [], '', ''
 
     def getConnectPermissions(self, externalNetwork):
         status, result = self.connect_client.list_permission(externalNetwork)
@@ -89,6 +87,22 @@ class PermissionsMainMenuFormReplyActivity(FormReplyActivity):
 
         return []
 
+    async def getSymphonyUserDetails(self, userList):
+        userIds = []
+        resultDict = dict()
+        for u1 in userList:
+            userIds.append(u1['symphonyId'])
+
+        output = await self._users.list_users_by_ids(user_ids=userIds)
+
+        if 'users' in output:
+            for u2 in output['users']:
+                resultDict[str(u2['id'])] = u2
+
+        return resultDict
+
+
+
 
 class PermissionsViewEditFormReplyActivity(FormReplyActivity):
 
@@ -110,9 +124,10 @@ class PermissionsViewEditFormReplyActivity(FormReplyActivity):
 
         # Get Symphony User Details
         try:
-            userDet = await self._users.get_user_detail(symphonyId)
-            user_profile = userDet['user_attributes']
-            advisorEmail = user_profile['email_address']
+            userDet = await self._users.list_users_by_ids(user_ids=[symphonyId])
+            if 'users' in userDet:
+                user_profile = userDet['users'][0]
+                advisorEmail = user_profile['email_address']
         except:
             message = f'<messageML>Fail to get user email for {symphonyId}</messageML>'
             await self._messages.send_message(context.source_event.stream.stream_id, message)

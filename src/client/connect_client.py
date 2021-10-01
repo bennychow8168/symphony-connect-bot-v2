@@ -39,27 +39,20 @@ class ConnectApiClient():
         return status, result
 
 
-    def list_entitlements(self, externalNetwork):
-        url = f'/api/v1/customer/entitlements/externalNetwork/{externalNetwork}/advisors'
-        status, result = self.execute_rest_call(externalNetwork, "GET", url)
+    def list_entitlements(self, externalNetwork, page_cursor=''):
+        base_url = f'/api/v1/customer/entitlements/externalNetwork/{externalNetwork}/advisors'
+        next_url = base_url + page_cursor
+        status, result = self.execute_rest_call(externalNetwork, "GET", next_url)
+        next_cursor = ''
+        prev_cursor = ''
 
-        if status == 'OK' and 'pagination' in result and 'next' in result['pagination'] and result['pagination']['next'] is not None:
-            after_cursor = result['pagination']['next']
-            while True:
-                next_url = url + after_cursor
-                logging.info(f'Retrieving next batch - {next_url}')
-                tmp_status, tmp_result = self.execute_rest_call(externalNetwork, "GET", next_url)
-                if tmp_status == 'OK':
-                    result['entitlements'] = result['entitlements'] + tmp_result['entitlements']
-                else:
-                    break
+        if status == 'OK' and 'pagination' in result:
+            if 'next' in result['pagination'] and result['pagination']['next'] is not None:
+                next_cursor = result['pagination']['next']
+            if 'previous' in result['pagination'] and result['pagination']['previous'] is not None:
+                prev_cursor = result['pagination']['previous']
 
-                if 'next' not in tmp_result['pagination'] or tmp_result['pagination']['next'] is None:
-                    break
-                else:
-                    after_cursor = tmp_result['pagination']['next']
-
-        return status, result
+        return status, result, next_cursor, prev_cursor
 
 
     def delete_entitlement(self, externalNetwork, symphonyId):
@@ -144,9 +137,6 @@ class ConnectApiClient():
             logging.error(type(err))
             raise
 
-        logging.debug(f'Response Status Code: {response.status_code}')
-        logging.debug(f'Response Text: {response.text}')
-
         if response.status_code == 204:
             results = []
         # JWT Expired - Generate new one
@@ -161,8 +151,8 @@ class ConnectApiClient():
                 results = response.text
 
         final_output = self.parse_result(results, response.status_code)
-        logging.debug(results)
-        logging.debug(f'API Output: {final_output}')
+        # logging.debug(results)
+        # logging.debug(f'API Output: {final_output}')
         if response.status_code in (200, 201, 204):
             return 'OK', results
         else:
@@ -184,6 +174,5 @@ class ConnectApiClient():
 
             encoded = jwt.encode(payload, private_key, algorithm='RS512')
             f.close()
-            print(encoded)
             self.jwt = encoded
             return encoded

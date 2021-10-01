@@ -33,7 +33,7 @@ async def run():
         activities = bdk.activities()
         activities.register(MainCommandActivity(bdk.messages()))
         activities.register(HelpCommand(bdk.messages()))
-        activities.register(EntitlementsMainMenuFormReplyActivity(bdk.messages(), connect_client))
+        activities.register(EntitlementsMainMenuFormReplyActivity(bdk.messages(), bdk.users(), connect_client))
         activities.register(EntitlementsDeleteFormReplyActivity(bdk.messages(), connect_client))
         activities.register(EntitlementsAddFormReplyActivity(bdk.messages(), bdk.users(), connect_client))
         activities.register(PermissionsMainMenuFormReplyActivity(bdk.messages(), bdk.users(), connect_client))

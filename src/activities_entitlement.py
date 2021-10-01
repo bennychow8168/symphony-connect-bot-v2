@@ -11,15 +11,16 @@ from .client.connect_client import ConnectApiClient
 class EntitlementsMainMenuFormReplyActivity(FormReplyActivity):
     # Sends back the selected value on form submission
 
-    def __init__(self, messages: MessageService, connect_client: ConnectApiClient):
+    def __init__(self, messages: MessageService, users: UserService, connect_client: ConnectApiClient):
         self._messages = messages
+        self._users = users
         self.connect_client = connect_client
         self.template = Template(open('resources/entitlements_add.jinja2').read(), autoescape=True)
         self.action = None
 
     def matches(self, context: FormReplyContext) -> bool:
-        return context.form_id == "main-menu-form" \
-            and context.form_values["action"] in ("add_entitlements", "view_delete_entitlements")
+        return context.form_id in ("main-menu-form", "entitlements-view-delete-form") \
+            and context.form_values["action"] in ("add_entitlements", "view_delete_entitlements", "next_page", "prev_page")
 
     async def on_activity(self, context: FormReplyContext):
         self.action = context.form_values["action"]
@@ -27,19 +28,40 @@ class EntitlementsMainMenuFormReplyActivity(FormReplyActivity):
             self.template = Template(open('resources/entitlements_add.jinja2').read(), autoescape=True)
             message = self.template.render(externalNetwork=context.form_values["externalNetwork"])
         else:
+            if self.action == "next_page":
+                page_cursor = context.form_values['next_cursor']
+            elif self.action == "prev_page":
+                page_cursor = context.form_values['prev_cursor']
+            else:
+                page_cursor = ''
             self.template = Template(open('resources/entitlements_view_delete.jinja2').read(), autoescape=True)
-            userList = self.getConnectEntitledUsers(context.form_values["externalNetwork"])
-            message = self.template.render(externalNetwork=context.form_values["externalNetwork"], userList=userList)
+            userList, next_cursor, prev_cursor = self.getConnectEntitledUsers(context.form_values["externalNetwork"], page_cursor)
+            symphony_user_profiles = await self.getSymphonyUserDetails(userList)
+            message = self.template.render(externalNetwork=context.form_values["externalNetwork"], userList=userList, next_cursor=next_cursor, prev_cursor=prev_cursor, symphony_user_profiles=symphony_user_profiles)
 
         await self._messages.send_message(context.source_event.stream.stream_id, message)
 
-    def getConnectEntitledUsers(self, externalNetwork):
-        status, result = self.connect_client.list_entitlements(externalNetwork)
+    def getConnectEntitledUsers(self, externalNetwork, page_cursor):
+        status, result, next_cursor, prev_cursor = self.connect_client.list_entitlements(externalNetwork, page_cursor)
         if status == 'OK':
             if 'entitlements' in result and len(result['entitlements']) > 0:
-                return result['entitlements']
+                return result['entitlements'], next_cursor, prev_cursor
 
-        return []
+        return [], '', ''
+
+    async def getSymphonyUserDetails(self, userList):
+        userIds = []
+        resultDict = dict()
+        for u1 in userList:
+            userIds.append(u1['symphonyId'])
+
+        output = await self._users.list_users_by_ids(user_ids=userIds)
+
+        if 'users' in output:
+            for u2 in output['users']:
+                resultDict[str(u2['id'])] = u2
+
+        return resultDict
 
 
 class EntitlementsDeleteFormReplyActivity(FormReplyActivity):

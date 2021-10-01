@@ -15,15 +15,23 @@
                       {% for user in userList %}
                       <tr>
                         <td>{{user['displayName']}}</td>
-                        <td>{{user['emailAddress']}}</td>
+                        <td>{{symphony_user_profiles[user['symphonyId']]['email_address']}}</td>
                         <td>{{user['externalNetwork']}}</td>
                         <td><button name="del_{{user['symphonyId']}}" type="action">Delete</button></td>
                       </tr>
                       {% endfor %}
                 </table>
                 <br/>
+                {% if prev_cursor != '' %}
+                <button name="prev_page" type="action">Previous</button>
+                {% endif %}
+                {% if next_cursor != '' %}
+                <button name="next_page" type="action">Next</button>
+                {% endif %}
                 <div style="display:none">
                     <text-field name="externalNetwork">{{externalNetwork}}</text-field>
+                    <textarea name="next_cursor">{{next_cursor}}</textarea>
+                    <textarea name="prev_cursor">{{prev_cursor}}</textarea>
                 </div>
             </form>
             </body>
