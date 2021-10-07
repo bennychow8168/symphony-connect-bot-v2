@@ -1,6 +1,8 @@
 # Symphony Connect Bot V2 Project
 The Symphony Connect Bot project uses the Symphony BDK 2.0 for Python.
-To get started, follow these commands below:
+To get started, follow these commands and steps below:
+
+![](usage.PNG)
 
 ## First run only:
 1. Create virtual environment:
