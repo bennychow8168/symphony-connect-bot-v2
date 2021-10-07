@@ -12,14 +12,40 @@
                         <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:200px'><b>Network</b></td>
                         <td style='border-bottom-style:none;background-color:#b7b7b7ff;width:200px'><b>Action</b></td>
                       </tr>
+                      {% if userList %}
                       {% for user in userList %}
                       <tr>
-                        <td>{{user['displayName']}}</td>
+                        <td>{{symphony_user_profiles[user['symphonyId']]['display_name']}}</td>
                         <td>{{symphony_user_profiles[user['symphonyId']]['email_address']}}</td>
                         <td>{{user['externalNetwork']}}</td>
-                        <td><button name="del_{{user['symphonyId']}}" type="action">Delete</button></td>
+                        <td><button name="del_{{user['symphonyId']}}" type="action">Remove Entitlement</button></td>
                       </tr>
                       {% endfor %}
+                      {% endif %}
+
+                      {% if userDict %}
+                      {% for symphonyId, user in userDict.items() %}
+                      {% if user == 'ERROR' %}
+                      <tr>
+                        <td>{{symphony_user_profiles[symphonyId]['display_name']}}</td>
+                        <td>{{symphony_user_profiles[symphonyId]['email_address']}}</td>
+                        {% if symphony_user_profiles[symphonyId]['email_address'] == '' %}
+                        <td>ERROR: Invalid user or user not found</td>
+                        {% else %}
+                        <td>ERROR: User is not entitled for {{externalNetwork}}</td>
+                        {% endif %}
+                        <td></td>
+                      </tr>
+                      {% else %}
+                      <tr>
+                        <td>{{symphony_user_profiles[symphonyId]['display_name']}}</td>
+                        <td>{{symphony_user_profiles[symphonyId]['email_address']}}</td>
+                        <td>{{user['externalNetwork']}}</td>
+                        <td><button name="del_{{symphonyId}}" type="action">Remove Entitlement</button></td>
+                      </tr>
+                      {% endif %}
+                      {% endfor %}
+                      {% endif %}
                 </table>
                 <br/>
                 {% if prev_cursor != '' %}
@@ -32,7 +58,9 @@
                     <text-field name="externalNetwork">{{externalNetwork}}</text-field>
                     <textarea name="next_cursor">{{next_cursor}}</textarea>
                     <textarea name="prev_cursor">{{prev_cursor}}</textarea>
+                    <button name="hiddenBtn" type="action">Hidden</button>
                 </div>
+                <button name="restart_main" type="action">Back to Main Menu</button>
             </form>
             </body>
         </card>

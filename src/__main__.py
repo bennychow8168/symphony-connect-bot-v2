@@ -9,9 +9,9 @@ from symphony.bdk.core.symphony_bdk import SymphonyBdk
 from symphony.bdk.gen.agent_model.v4_initiator import V4Initiator
 from symphony.bdk.gen.agent_model.v4_message_sent import V4MessageSent
 
-from .activities_main import MainCommandActivity, HelpCommand
-from .activities_entitlement import EntitlementsMainMenuFormReplyActivity, EntitlementsDeleteFormReplyActivity, EntitlementsAddFormReplyActivity
-from .activities_permissions import PermissionsMainMenuFormReplyActivity, PermissionsViewEditFormReplyActivity, PermissionsEditUserFormReplyActivity
+from .activities_main import MainCommandActivity, RestartMainFormReplyActivity, HelpCommand
+from .activities_entitlement import EntitlementsMainMenuFormReplyActivity, EntitlementsDeleteFormReplyActivity, EntitlementsAddFormReplyActivity, EntitlementsSearchFormReplyActivity
+from .activities_permissions import PermissionsMainMenuFormReplyActivity, PermissionsViewEditFormReplyActivity, PermissionsEditUserFormReplyActivity, PermissionsSearchFormReplyActivity
 from .client.connect_client import ConnectApiClient
 
 # Configure logging
@@ -23,6 +23,11 @@ logging.config.fileConfig(logging_conf, disable_existing_loggers=False)
 async def run():
     config = BdkConfigLoader.load_from_file(Path.joinpath(current_dir, 'resources', 'config.yaml'))
 
+    # Check external network is configured
+    if config.context is None:
+        logging.error("ERROR: No external network configured in config file")
+        exit(1)
+
     # Init Conenct API Client
     connect_client = ConnectApiClient(config)
 
@@ -31,14 +36,17 @@ async def run():
         datafeed_loop.subscribe(MessageListener())
 
         activities = bdk.activities()
-        activities.register(MainCommandActivity(bdk.messages()))
+        activities.register(MainCommandActivity(bdk.messages(), config))
+        activities.register(RestartMainFormReplyActivity(bdk.messages(), config))
         activities.register(HelpCommand(bdk.messages()))
         activities.register(EntitlementsMainMenuFormReplyActivity(bdk.messages(), bdk.users(), connect_client))
         activities.register(EntitlementsDeleteFormReplyActivity(bdk.messages(), connect_client))
         activities.register(EntitlementsAddFormReplyActivity(bdk.messages(), bdk.users(), connect_client))
+        activities.register(EntitlementsSearchFormReplyActivity(bdk.messages(), bdk.users(), connect_client))
         activities.register(PermissionsMainMenuFormReplyActivity(bdk.messages(), bdk.users(), connect_client))
         activities.register(PermissionsViewEditFormReplyActivity(bdk.messages(), bdk.users(), connect_client))
         activities.register(PermissionsEditUserFormReplyActivity(bdk.messages(), bdk.users(), connect_client))
+        activities.register(PermissionsSearchFormReplyActivity(bdk.messages(), bdk.users(), connect_client))
 
         # Start the datafeed read loop
         await datafeed_loop.start()

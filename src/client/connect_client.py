@@ -81,6 +81,14 @@ class ConnectApiClient():
         return status, result
 
 
+    def get_entitlement(self, externalNetwork, symphonyId):
+        url = f'/api/v2/customer/advisor/entitlements?externalNetwork={externalNetwork}&advisorSymphonyId={symphonyId}'
+
+        status, result = self.execute_rest_call(externalNetwork, "GET", url)
+
+        return status, result
+
+
     def parse_result(self, apiResult, responseCode):
         if apiResult is not None:
             if responseCode not in (200, 201, 204):

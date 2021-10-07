@@ -20,13 +20,18 @@ class PermissionsMainMenuFormReplyActivity(FormReplyActivity):
 
     def matches(self, context: FormReplyContext) -> bool:
         return context.form_id in ("main-menu-form", "permissions-view-edit-form") \
-            and context.form_values["action"] in ("view_edit_permissions", "next_page", "prev_page")
+            and context.form_values["action"] in ("view_edit_permissions", "search_permissions","next_page", "prev_page")
 
     async def on_activity(self, context: FormReplyContext):
         self.template = Template(open('resources/permissions_view_edit.jinja2').read(), autoescape=True)
         externalNetwork = context.form_values["externalNetwork"]
         self.action = context.form_values["action"]
-        if self.action == "next_page":
+        if self.action == "search_permissions":
+            self.template = Template(open('resources/permissions_search.jinja2').read(), autoescape=True)
+            message = self.template.render(externalNetwork=context.form_values["externalNetwork"])
+            await self._messages.send_message(context.source_event.stream.stream_id, message)
+            return
+        elif self.action == "next_page":
             page_cursor = context.form_values['next_cursor']
         elif self.action == "prev_page":
             page_cursor = context.form_values['prev_cursor']
@@ -179,7 +184,8 @@ class PermissionsEditUserFormReplyActivity(FormReplyActivity):
 
     def matches(self, context: FormReplyContext) -> bool:
         return context.form_id == "permissions-edit-user-form" \
-            and ("new_permissions" in context.form_values or "del_permissions" in context.form_values)
+            and ("new_permissions" in context.form_values or "del_permissions" in context.form_values) \
+            and context.form_values["action"] != "restart_main"
 
     async def on_activity(self, context: FormReplyContext):
         self.template = Template(open('resources/permissions_edit_user_result.jinja2').read(), autoescape=True)
@@ -205,6 +211,7 @@ class PermissionsEditUserFormReplyActivity(FormReplyActivity):
             status, result = self.connect_client.delete_permission(externalNetwork, advisorEmail, p1)
             output = {
                 "status": status,
+                "action": "DELETE",
                 "result": result
             }
             permission_results[p1] = output
@@ -213,6 +220,7 @@ class PermissionsEditUserFormReplyActivity(FormReplyActivity):
             status, result = self.connect_client.add_permission(externalNetwork, advisorEmail, p2)
             output = {
                 "status": status,
+                "action": "ADD",
                 "result": result
             }
             permission_results[p2] = output
@@ -223,6 +231,106 @@ class PermissionsEditUserFormReplyActivity(FormReplyActivity):
 
     def addPermission(self, externalNetwork, advisorEmail, permissionName):
         status, result = self.connect_client.add_permission(externalNetwork, advisorEmail, permissionName)
+        if status == 'OK':
+            if 'permissions' in result and len(result['permissions']) > 0:
+                output = []
+                for p in result['permissions']:
+                    if isinstance(p, dict) and 'permissionName' in p:
+                        output.append(p['permissionName'])
+                    else:
+                        output.append(p)
+                return output
+
+        return []
+
+
+class PermissionsSearchFormReplyActivity(FormReplyActivity):
+    # Sends back the selected value on form submission
+
+    def __init__(self, messages: MessageService, users: UserService, connect_client: ConnectApiClient):
+        self._messages = messages
+        self._users = users
+        self.connect_client = connect_client
+        self.template = None
+
+    def matches(self, context: FormReplyContext) -> bool:
+        return context.form_id == "permissions-search-form" \
+            and context.form_values["userlist"] \
+            and context.form_values["action"] != "restart_main"
+
+    async def on_activity(self, context: FormReplyContext):
+        self.template = Template(open('resources/permissions_view_edit.jinja2').read(), autoescape=True)
+        userList = context.form_values["userlist"]
+        externalNetwork = context.form_values["externalNetwork"]
+        connect_permissions = self.getConnectPermissions(externalNetwork)
+        connect_entitled_users, symphony_user_profiles = await self.getEntitledStatus(externalNetwork, userList)
+        entitled_users_permissions = dict()
+
+        # Loop through Entitled Users
+        for symphonyId, user in connect_entitled_users.items():
+            # Get Connect permissions
+            advisorEmail = symphony_user_profiles[symphonyId]['email_address']
+            entitled_users_permissions[symphonyId] = self.getAdvisorPermission(externalNetwork, advisorEmail)
+
+        message = self.template.render(externalNetwork=context.form_values["externalNetwork"],
+                                       connect_permissions=connect_permissions,
+                                       connect_entitled_dict=connect_entitled_users,
+                                       symphony_user_profiles=symphony_user_profiles,
+                                       entitled_users_permissions=entitled_users_permissions,
+                                       next_cursor='', prev_cursor='')
+
+        await self._messages.send_message(context.source_event.stream.stream_id, message)
+
+    def getConnectPermissions(self, externalNetwork):
+        status, result = self.connect_client.list_permission(externalNetwork)
+        if status == 'OK':
+            if 'permissions' in result and len(result['permissions']) > 0:
+                output = []
+                for p in result['permissions']:
+                    if isinstance(p, dict) and 'permissionName' in p:
+                        output.append(p['permissionName'])
+                    else:
+                        output.append(p)
+                return output
+
+        return []
+
+    async def getEntitledStatus(self, externalNetwork, userList):
+        connect_entitled_users = dict()
+        symphony_user_profiles = dict()
+        for symphonyId in userList:
+            # Get Symphony User Details
+            try:
+                output = await self._users.list_users_by_ids(user_ids=[symphonyId])
+                if 'users' in output:
+                    userDet = output['users'][0]
+                    symphony_user_profiles[symphonyId] = userDet
+
+                    # Check user Entitlement status
+                    status, result = self.connect_client.get_entitlement(externalNetwork, symphonyId)
+                    if status == 'OK':
+                        connect_entitled_users[symphonyId] = result
+                    else:
+                        connect_entitled_users[symphonyId] = "ERROR"
+                else:
+                    symphony_user_profiles[symphonyId] = {
+                        'display_name': symphonyId,
+                        'email_address': ''
+                    }
+                    connect_entitled_users[symphonyId] = "ERROR"
+
+            except:
+                symphony_user_profiles[symphonyId] = {
+                    'display_name': symphonyId,
+                    'email_address': ''
+                }
+                connect_entitled_users[symphonyId] = "ERROR"
+                continue
+
+        return connect_entitled_users, symphony_user_profiles
+
+    def getAdvisorPermission(self, externalNetwork, advisorEmail):
+        status, result = self.connect_client.get_advisor_permission(externalNetwork, advisorEmail)
         if status == 'OK':
             if 'permissions' in result and len(result['permissions']) > 0:
                 output = []
